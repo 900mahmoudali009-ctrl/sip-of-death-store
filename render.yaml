@@ -1,0 +1,42 @@
+# Render.com blueprint — deploy the whole store with one click.
+# 1. Push this repo to GitHub
+# 2. render.com → New → Blueprint → pick the repo → Apply
+# 3. Fill the sync(false) env vars from your Supabase dashboard
+services:
+  - type: web
+    name: sip-of-death-store
+    runtime: node
+    plan: free
+    rootDir: sip-of-death-store
+    buildCommand: cd api && npm install
+    startCommand: cd api && node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # Supabase → Project Settings → Database → Connection pooling (port 6543)
+      - key: SUPABASE_URL
+        sync: false          # Supabase → Project Settings → API → Project URL
+      - key: SUPABASE_SERVICE_KEY
+        sync: false          # Supabase → Project Settings → API → service_role (keep secret!)
+      - key: SUPABASE_BUCKET
+        value: product-images
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false          # pick a strong password — you will change it from /admin anyway
+      - key: STORE_URL
+        sync: false          # https://your-service.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: PAYMOB_API_KEY
+        sync: false
+      - key: PAYMOB_INTEGRATION_ID
+        sync: false
+      - key: PAYMOB_IFRAME_ID
+        sync: false
+      - key: PAYMOB_HMAC_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

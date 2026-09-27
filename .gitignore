@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# API
+node_modules/
+.env
+
+# local databases, uploads & test scratch dirs
+data/
+data-smoke/
+data-smoke-pg/
+data-pg-local/
+
+# build output
+standalone.html
