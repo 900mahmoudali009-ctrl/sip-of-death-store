@@ -766,7 +766,7 @@ Views.checkout = () => {
                 <span class="paycard__d">${esc(m.detail)}${m.id === 'cod' ? ` · +${fmt(STORE.codFee)} fee · max ${fmt(STORE.codMax)}` : ''}</span>
               </label>`).join('')}
           </div>
-          ${transferMethods.includes(CK.method) ? `<p class="cod-note">${icon('box', 'ic-s')} ${transferHint(CK.method)} — you'll find the order number and total on the confirmation screen.</p>` : ''}
+          ${TRANSFER_METHODS.includes(CK.method) ? `<p class="cod-note">${icon('box', 'ic-s')} ${transferHint(CK.method)} — you'll find the order number and total on the confirmation screen.</p>` : ''}
           ${CK.method === 'cod' ? `<p class="cod-note">${icon('box', 'ic-s')} Pay <strong data-cod-amount></strong> in cash when the reaper knocks. COD fee ${fmt(STORE.codFee)} applies.</p>` : ''}
           <div class="ck-nav">
             <button type="button" class="btn btn--ghost" data-action="ck-back">← BACK</button>
@@ -966,7 +966,7 @@ Views.checkout = () => {
           CK.step = 1; CK.data = {}; CK.method = 'card';
 
           if (order.paymentMethod !== 'card') {
-            if (transferMethods.includes(order.paymentMethod)) {
+            if (TRANSFER_METHODS.includes(order.paymentMethod)) {
               toast('Order placed — transfer now open', 'info');
               sessionStorage.setItem('sod.lastOrder', order.number);
               location.hash = `#/transfer?order=${encodeURIComponent(order.number)}`;
