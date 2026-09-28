@@ -2,9 +2,9 @@
 
 /* ============================================================
    SIP OF DEATH — API + storefront server
-   Express + PostgreSQL (Supabase). Serves the static SPA and the
-   REST API on one origin. Real payment intents via Paymob/Stripe
-   or the sandbox mock; webhooks verified + idempotent.
+   Express + PostgreSQL. Serves the static SPA and the REST API
+   on one origin (local dev + Render/Koyeb style hosts).
+   For Vercel serverless, api/index.js wraps this same app.
    ============================================================ */
 
 const path = require('path');
@@ -18,7 +18,24 @@ const STORE_URL = (process.env.STORE_URL || `http://localhost:${PORT}`).replace(
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; /* 12h admin sessions */
-const SESSION_SECRET = crypto.randomBytes(32).toString('hex'); /* rotates on restart */
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+/* one-time schema/seed — safe to call repeatedly (idempotent), shared
+   by the standalone boot and the serverless cold-start */
+let readyPromise = null;
+function ensureReady() {
+  if (!readyPromise) {
+    readyPromise = (async () => {
+      await store.migrate();
+      await store.seedIfEmpty();
+      await store.ensureAdminUser();
+    })().catch((err) => {
+      readyPromise = null;
+      throw err;
+    });
+  }
+  return readyPromise;
+}
 
 /* ---------- admin session tokens (stateless HMAC, 12h TTL) ---------- */
 
@@ -530,19 +547,27 @@ app.use((req, res) => {
 /* ---------- boot ---------- */
 
 async function boot() {
-  await store.migrate();
-  const seeded = await store.seedIfEmpty();
-  const adminSeeded = await store.ensureAdminUser();
-  app.listen(PORT, () => {
-    console.log('☠ SIP OF DEATH API');
-    console.log(`   storefront + API → http://localhost:${PORT}`);
-    console.log(`   postgres → ${String(process.env.DATABASE_URL || '').replace(/\/\/([^:]+):[^@]*@/, '//\$1:***@')}${seeded ? ' (seeded)' : ''}`);
-    console.log(`   provider: ${gateways.pickProvider() || 'NONE — set PAYMOB_* / STRIPE_* env vars'}`);
-    console.log(`   admin login: username "${ADMIN_USERNAME}"${adminSeeded ? ` with default password — CHANGE IT from /admin → Settings` : ''}`);
+  await ensureReady();
+  return new Promise((resolve) => {
+    app.listen(PORT, () => {
+      console.log('☠ SIP OF DEATH API');
+      console.log(`   storefront + API → http://localhost:${PORT}`);
+      console.log(`   postgres → ${String(process.env.DATABASE_URL || '').replace(/\/\/([^:]+):[^@]*@/, '//\$1:***@')}`);
+      console.log(`   provider: ${gateways.pickProvider() || 'NONE — set PAYMOB_* / STRIPE_* env vars'}`);
+      console.log(`   admin login: username "${ADMIN_USERNAME}" (default password — CHANGE IT from /admin → Settings)`);
+      resolve();
+    });
   });
 }
 
-boot().catch((err) => {
-  console.error('boot failed:', err.message);
-  process.exit(1);
-});
+/* Run the server only when executed directly (node server.js) —
+   when required from the Vercel serverless wrapper (api/index.js)
+   just export the app. */
+if (require.main === module) {
+  boot().catch((err) => {
+    console.error('boot failed:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, boot, ensureReady };

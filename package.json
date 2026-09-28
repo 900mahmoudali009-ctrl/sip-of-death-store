@@ -1,0 +1,13 @@
+{
+  "name": "sip-of-death-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SIP OF DEATH coffee store — Vercel root (serverless API lives in api/)",
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
